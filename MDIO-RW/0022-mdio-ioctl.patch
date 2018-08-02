@@ -1,0 +1,37 @@
+From 553cc526978dbec5154c2f4da592e75eedbed1e2 Mon Sep 17 00:00:00 2001
+From: Eric Waugh <eric.waugh@calix.com>
+Date: Mon, 31 Aug 2015 16:13:21 -0700
+Subject: [PATCH] adding ioctl SIOCGMIIPHY and SIOCSMIIREG to t10xx
+
+---
+ drivers/net/ethernet/freescale/dpa/dpaa_eth_common.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/ethernet/freescale/dpa/dpaa_eth_common.c b/drivers/net/ethernet/freescale/dpa/dpaa_eth_common.c
+index 32684d2..d4405de 100644
+--- a/drivers/net/ethernet/freescale/dpa/dpaa_eth_common.c
++++ b/drivers/net/ethernet/freescale/dpa/dpaa_eth_common.c
+@@ -451,11 +451,18 @@ static int dpa_ts_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
+ 
+ int dpa_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
+ {
+-#ifdef CONFIG_FSL_DPAA_1588
+ 	struct dpa_priv_s *priv = netdev_priv(dev);
+-#endif
+ 	int ret = 0;
+ 
++	if(cmd >= SIOCGMIIPHY && cmd <= SIOCSMIIREG) {
++		if( priv && priv->mac_dev && priv->mac_dev->phy_dev ) {
++			return phy_mii_ioctl(priv->mac_dev->phy_dev, rq, cmd);
++		} else {
++			netdev_warn(dev, "No phy device\n");
++			ret = -ENODEV;
++		}
++	}
++
+ 	/* at least one timestamping feature must be enabled */
+ #ifdef CONFIG_FSL_DPAA_TS
+ 	if (!netif_running(dev))
+-- 
+1.9.3
+
